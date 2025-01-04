@@ -1263,6 +1263,12 @@ public class CoreOptions implements Serializable {
                     .defaultValue(false)
                     .withDescription("Whether to automatically complete missing tags.");
 
+    public static final ConfigOption<String> TAG_BATCH_CUSTOMIZED_NAME =
+            key("tag.batch.customized-name")
+                    .stringType()
+                    .noDefaultValue()
+                    .withDescription("Use customized name when creating tags in Batch mode.");
+
     public static final ConfigOption<Duration> SNAPSHOT_WATERMARK_IDLE_TIMEOUT =
             key("snapshot.watermark-idle-timeout")
                     .durationType()
@@ -1581,6 +1587,10 @@ public class CoreOptions implements Serializable {
 
     public FileFormat fileFormat() {
         return createFileFormat(options, FILE_FORMAT);
+    }
+
+    public String fileFormatString() {
+        return normalizeFileFormat(options.get(FILE_FORMAT));
     }
 
     public FileFormat manifestFormat() {
@@ -2239,6 +2249,10 @@ public class CoreOptions implements Serializable {
 
     public boolean tagAutomaticCompletion() {
         return options.get(TAG_AUTOMATIC_COMPLETION);
+    }
+
+    public String tagBatchCustomizedName() {
+        return options.get(TAG_BATCH_CUSTOMIZED_NAME);
     }
 
     public Duration snapshotWatermarkIdleTimeout() {

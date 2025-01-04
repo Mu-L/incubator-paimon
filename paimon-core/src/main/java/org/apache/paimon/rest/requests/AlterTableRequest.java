@@ -16,29 +16,34 @@
  * limitations under the License.
  */
 
-package org.apache.paimon.rest.responses;
+package org.apache.paimon.rest.requests;
 
-import org.apache.paimon.rest.RESTMessage;
+import org.apache.paimon.rest.RESTRequest;
+import org.apache.paimon.schema.SchemaChange;
 
 import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.annotation.JsonCreator;
 import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.annotation.JsonGetter;
+import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.annotation.JsonProperty;
 
-/** Class for Database entity. */
-public class DatabaseName implements RESTMessage {
+import java.util.List;
 
-    private static final String FIELD_NAME = "name";
+/** Request for altering table. */
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class AlterTableRequest implements RESTRequest {
 
-    @JsonProperty(FIELD_NAME)
-    private String name;
+    private static final String FIELD_NEW_UPDATE = "changes";
+
+    @JsonProperty(FIELD_NEW_UPDATE)
+    private final List<SchemaChange> changes;
 
     @JsonCreator
-    public DatabaseName(@JsonProperty(FIELD_NAME) String name) {
-        this.name = name;
+    public AlterTableRequest(@JsonProperty(FIELD_NEW_UPDATE) List<SchemaChange> changes) {
+        this.changes = changes;
     }
 
-    @JsonGetter(FIELD_NAME)
-    public String getName() {
-        return this.name;
+    @JsonGetter(FIELD_NEW_UPDATE)
+    public List<SchemaChange> getChanges() {
+        return changes;
     }
 }

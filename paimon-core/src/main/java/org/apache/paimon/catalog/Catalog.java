@@ -20,7 +20,7 @@ package org.apache.paimon.catalog;
 
 import org.apache.paimon.annotation.Public;
 import org.apache.paimon.fs.FileIO;
-import org.apache.paimon.manifest.PartitionEntry;
+import org.apache.paimon.partition.Partition;
 import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.SchemaChange;
 import org.apache.paimon.table.Table;
@@ -247,20 +247,20 @@ public interface Catalog extends AutoCloseable {
      * Drop the partition of the specify table.
      *
      * @param identifier path of the table to drop partition
-     * @param partitions the partition to be deleted
+     * @param partition the partition to be deleted
      * @throws TableNotExistException if the table does not exist
      * @throws PartitionNotExistException if the partition does not exist
      */
-    void dropPartition(Identifier identifier, Map<String, String> partitions)
+    void dropPartition(Identifier identifier, Map<String, String> partition)
             throws TableNotExistException, PartitionNotExistException;
 
     /**
-     * Get PartitionEntry of all partitions of the table.
+     * Get Partition of all partitions of the table.
      *
      * @param identifier path of the table to list partitions
      * @throws TableNotExistException if the table does not exist
      */
-    List<PartitionEntry> listPartitions(Identifier identifier) throws TableNotExistException;
+    List<Partition> listPartitions(Identifier identifier) throws TableNotExistException;
 
     /**
      * Modify an existing table from a {@link SchemaChange}.
@@ -433,6 +433,22 @@ public interface Catalog extends AutoCloseable {
         }
     }
 
+    /** Exception for trying to operate on the database that doesn't have permission. */
+    class DatabaseNoPermissionException extends RuntimeException {
+        private static final String MSG = "Database %s has no permission.";
+
+        private final String database;
+
+        public DatabaseNoPermissionException(String database, Throwable cause) {
+            super(String.format(MSG, database), cause);
+            this.database = database;
+        }
+
+        public String database() {
+            return database;
+        }
+    }
+
     /** Exception for trying to create a table that already exists. */
     class TableAlreadyExistException extends Exception {
 
@@ -466,6 +482,23 @@ public interface Catalog extends AutoCloseable {
         }
 
         public TableNotExistException(Identifier identifier, Throwable cause) {
+            super(String.format(MSG, identifier.getFullName()), cause);
+            this.identifier = identifier;
+        }
+
+        public Identifier identifier() {
+            return identifier;
+        }
+    }
+
+    /** Exception for trying to operate on the table that doesn't have permission. */
+    class TableNoPermissionException extends RuntimeException {
+
+        private static final String MSG = "Table %s has no permission.";
+
+        private final Identifier identifier;
+
+        public TableNoPermissionException(Identifier identifier, Throwable cause) {
             super(String.format(MSG, identifier.getFullName()), cause);
             this.identifier = identifier;
         }

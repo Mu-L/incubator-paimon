@@ -19,14 +19,27 @@
 package org.apache.paimon.rest;
 
 import org.apache.paimon.rest.requests.AlterDatabaseRequest;
+import org.apache.paimon.rest.requests.AlterTableRequest;
 import org.apache.paimon.rest.requests.CreateDatabaseRequest;
+import org.apache.paimon.rest.requests.CreatePartitionRequest;
+import org.apache.paimon.rest.requests.CreateTableRequest;
+import org.apache.paimon.rest.requests.DropPartitionRequest;
+import org.apache.paimon.rest.requests.RenameTableRequest;
 import org.apache.paimon.rest.responses.AlterDatabaseResponse;
 import org.apache.paimon.rest.responses.ConfigResponse;
 import org.apache.paimon.rest.responses.CreateDatabaseResponse;
 import org.apache.paimon.rest.responses.ErrorResponse;
 import org.apache.paimon.rest.responses.GetDatabaseResponse;
+import org.apache.paimon.rest.responses.GetTableResponse;
 import org.apache.paimon.rest.responses.ListDatabasesResponse;
+import org.apache.paimon.rest.responses.ListPartitionsResponse;
+import org.apache.paimon.rest.responses.ListTablesResponse;
+import org.apache.paimon.rest.responses.PartitionResponse;
+import org.apache.paimon.types.DataField;
+import org.apache.paimon.types.DataTypes;
+import org.apache.paimon.types.IntType;
 
+import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.core.JsonProcessingException;
 import org.apache.paimon.shade.jackson2.com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.Test;
@@ -36,6 +49,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
 /** Test for {@link RESTObjectMapper}. */
 public class RESTObjectMapperTest {
@@ -103,7 +117,7 @@ public class RESTObjectMapperTest {
         ListDatabasesResponse parseData =
                 mapper.readValue(responseStr, ListDatabasesResponse.class);
         assertEquals(response.getDatabases().size(), parseData.getDatabases().size());
-        assertEquals(name, parseData.getDatabases().get(0).getName());
+        assertEquals(name, parseData.getDatabases().get(0));
     }
 
     @Test
@@ -124,5 +138,104 @@ public class RESTObjectMapperTest {
         assertEquals(response.getRemoved().size(), parseData.getRemoved().size());
         assertEquals(response.getUpdated().size(), parseData.getUpdated().size());
         assertEquals(response.getMissing().size(), parseData.getMissing().size());
+    }
+
+    @Test
+    public void createTableRequestParseTest() throws Exception {
+        CreateTableRequest request = MockRESTMessage.createTableRequest("t1");
+        String requestStr = mapper.writeValueAsString(request);
+        CreateTableRequest parseData = mapper.readValue(requestStr, CreateTableRequest.class);
+        assertEquals(request.getIdentifier(), parseData.getIdentifier());
+        assertEquals(request.getSchema(), parseData.getSchema());
+    }
+
+    // This test is to guarantee the compatibility of field name in RESTCatalog.
+    @Test
+    public void dataFieldParseTest() throws Exception {
+        int id = 1;
+        String name = "col1";
+        IntType type = DataTypes.INT();
+        String descStr = "desc";
+        String dataFieldStr =
+                String.format(
+                        "{\"id\": %d,\"name\":\"%s\",\"type\":\"%s\", \"description\":\"%s\"}",
+                        id, name, type, descStr);
+        DataField parseData = mapper.readValue(dataFieldStr, DataField.class);
+        assertEquals(id, parseData.id());
+        assertEquals(name, parseData.name());
+        assertEquals(type, parseData.type());
+        assertEquals(descStr, parseData.description());
+    }
+
+    @Test
+    public void renameTableRequestParseTest() throws Exception {
+        RenameTableRequest request = MockRESTMessage.renameRequest("t2");
+        String requestStr = mapper.writeValueAsString(request);
+        RenameTableRequest parseData = mapper.readValue(requestStr, RenameTableRequest.class);
+        assertEquals(request.getNewIdentifier(), parseData.getNewIdentifier());
+    }
+
+    @Test
+    public void getTableResponseParseTest() throws Exception {
+        GetTableResponse response = MockRESTMessage.getTableResponse();
+        String responseStr = mapper.writeValueAsString(response);
+        GetTableResponse parseData = mapper.readValue(responseStr, GetTableResponse.class);
+        assertEquals(response.getSchemaId(), parseData.getSchemaId());
+        assertEquals(response.getSchema(), parseData.getSchema());
+    }
+
+    @Test
+    public void listTablesResponseParseTest() throws Exception {
+        ListTablesResponse response = MockRESTMessage.listTablesResponse();
+        String responseStr = mapper.writeValueAsString(response);
+        ListTablesResponse parseData = mapper.readValue(responseStr, ListTablesResponse.class);
+        assertEquals(response.getTables(), parseData.getTables());
+    }
+
+    @Test
+    public void alterTableRequestParseTest() throws Exception {
+        AlterTableRequest request = MockRESTMessage.alterTableRequest();
+        String requestStr = mapper.writeValueAsString(request);
+        AlterTableRequest parseData = mapper.readValue(requestStr, AlterTableRequest.class);
+        assertEquals(parseData.getChanges().size(), parseData.getChanges().size());
+    }
+
+    @Test
+    public void createPartitionRequestParseTest() throws JsonProcessingException {
+        CreatePartitionRequest request = MockRESTMessage.createPartitionRequest("t1");
+        String requestStr = mapper.writeValueAsString(request);
+        CreatePartitionRequest parseData =
+                mapper.readValue(requestStr, CreatePartitionRequest.class);
+        assertEquals(parseData.getIdentifier(), parseData.getIdentifier());
+        assertEquals(parseData.getPartitionSpec().size(), parseData.getPartitionSpec().size());
+    }
+
+    @Test
+    public void dropPartitionRequestParseTest() throws JsonProcessingException {
+        DropPartitionRequest request = MockRESTMessage.dropPartitionRequest();
+        String requestStr = mapper.writeValueAsString(request);
+        DropPartitionRequest parseData = mapper.readValue(requestStr, DropPartitionRequest.class);
+        assertEquals(parseData.getPartitionSpec().size(), parseData.getPartitionSpec().size());
+    }
+
+    @Test
+    public void listPartitionsResponseParseTest() throws Exception {
+        ListPartitionsResponse response = MockRESTMessage.listPartitionsResponse();
+        String responseStr = mapper.writeValueAsString(response);
+        ListPartitionsResponse parseData =
+                mapper.readValue(responseStr, ListPartitionsResponse.class);
+        assertEquals(
+                response.getPartitions().get(0).fileCount(),
+                parseData.getPartitions().get(0).fileCount());
+    }
+
+    @Test
+    public void partitionResponseParseTest() throws Exception {
+        PartitionResponse response = MockRESTMessage.partitionResponse();
+        assertDoesNotThrow(() -> mapper.writeValueAsString(response));
+        assertDoesNotThrow(
+                () ->
+                        mapper.readValue(
+                                mapper.writeValueAsString(response), PartitionResponse.class));
     }
 }
